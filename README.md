@@ -1,74 +1,38 @@
-# nextjs-anchor
+# Kolo — Communal Savings on Solana
 
-Next.js starter with Tailwind CSS, `@solana/kit`, and an Anchor vault program example.
+Decentralized rotating savings circles (Ajo / ROSCA) with collateral protection, built on Solana Devnet with Anchor.
+
+## What is Kolo?
+
+Kolo lets communities run rotating savings circles on-chain. Members lock 1× their contribution as collateral, pay a fixed amount each round, and the smart vault automatically releases the full collected pot to one member per round. Defaulters are skipped ahead and charged a late fee; the protocol enforces the rules so no trusted middleman is needed.
+
+- **Program:** Anchor (Rust), deployed to devnet at `BVNGa6bQ7xPoiXd3Gz1JANVBVugbXD1Q5WQaAYAZ2y5c`
+- **Frontend:** Next.js 16 + React 19 + TypeScript + Tailwind CSS v4
+- **Solana client:** `@solana/kit` + wallet-standard (Privy embedded wallets + Phantom)
+- **Program client:** Codama-generated TypeScript client
 
 ## Getting Started
 
 ```shell
-npx -y create-solana-dapp@latest -t solana-foundation/templates/kit/nextjs-anchor
-```
-
-```shell
 npm install
-npm run setup   # Builds the Anchor program and generates the TypeScript client
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), connect your wallet, and interact with the vault.
+Open [http://localhost:3000](http://localhost:3000), connect a wallet (or use email login to create a seedless wallet), and interact with the ledger.
 
-## What's Included
+## Scripts
 
-- **Wallet connection** via wallet-standard with auto-discovery and dropdown UI
-- **Cluster switching** — devnet, testnet, mainnet, and localnet from the header
-- **Wallet balance** display with airdrop button (devnet/testnet/localnet)
-- **SOL Vault program** — deposit and withdraw SOL from a personal PDA vault
-- **Toast notifications** with explorer links for every transaction
-- **Error handling** — human-readable messages for common Solana and program errors
-- **Codama-generated client** — type-safe program interactions using `@solana/kit`
-- **Tailwind CSS v4** with light/dark mode toggle
-
-## Stack
-
-| Layer          | Technology                       |
-| -------------- | -------------------------------- |
-| Frontend       | Next.js 16, React 19, TypeScript |
-| Styling        | Tailwind CSS v4                  |
-| Solana Client  | `@solana/kit`, wallet-standard   |
-| Program Client | Codama-generated, `@solana/kit`  |
-| Program        | Anchor (Rust)                    |
-
-## Project Structure
-
-```
-├── app/
-│   ├── components/
-│   │   ├── cluster-context.tsx  # Cluster state (React context + localStorage)
-│   │   ├── cluster-select.tsx   # Cluster switcher dropdown
-│   │   ├── grid-background.tsx  # Solana-branded decorative grid
-│   │   ├── providers.tsx        # Wallet + theme providers
-│   │   ├── theme-toggle.tsx     # Light/dark mode toggle
-│   │   ├── vault-card.tsx       # Vault deposit/withdraw UI
-│   │   └── wallet-button.tsx    # Wallet connect/disconnect dropdown
-│   ├── generated/vault/        # Codama-generated program client
-│   ├── lib/
-│   │   ├── wallet/             # Wallet-standard connection layer
-│   │   │   ├── types.ts        # Wallet types
-│   │   │   ├── standard.ts     # Wallet discovery + session creation
-│   │   │   ├── signer.ts       # WalletSession → TransactionSigner
-│   │   │   └── context.tsx     # WalletProvider + useWallet() hook
-│   │   ├── hooks/
-│   │   │   ├── use-balance.ts  # SWR-based balance fetching
-│   │   │   └── use-send-transaction.ts  # Transaction send with loading state
-│   │   ├── cluster.ts          # Cluster endpoints + RPC factory
-│   │   ├── lamports.ts         # SOL/lamports conversion
-│   │   ├── send-transaction.ts # Transaction build + sign + send pipeline
-│   │   ├── errors.ts           # Transaction error parsing
-│   │   └── explorer.ts         # Explorer URL builder + address helpers
-│   └── page.tsx                # Main page
-├── anchor/                     # Anchor workspace
-│   └── programs/vault/         # Vault program (Rust)
-└── codama.json                 # Codama client generation config
-```
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the Next.js dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run anchor-build` | Build the Anchor program (`--ignore-keys`) |
+| `npm run anchor-test` | Run Anchor tests via LiteSVM |
+| `npm run setup` | Build program + regenerate Codama client |
+| `node scripts/setup-wallets.mjs` | Airdrop SOL to a fresh wallet 2 |
+| `node scripts/create-devnet-circle.ts` | Create a test circle on devnet |
+| `node scripts/verify-accounts.mjs` | Decode all Kolo program accounts from devnet |
 
 ## Local Development
 
@@ -93,19 +57,7 @@ To test against a local validator instead of devnet:
 
 3. **Switch to localnet** in the app using the cluster selector in the header.
 
-## Deploy Your Own Vault
-
-The included vault program is already deployed to devnet. To deploy your own:
-
-> **Note:** `npm run setup` and `npm run anchor-build` pass `--ignore-keys` to `anchor build` so the program keeps the devnet program ID shipped with this template (`F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB`). Anchor 1.x otherwise generates a fresh program keypair on build and rewrites `declare_id!`. The steps below build without that flag on purpose, so Anchor syncs your own program ID before deploying.
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/)
-- [Solana CLI](https://solana.com/docs/intro/installation)
-- [Anchor](https://www.anchor-lang.com/docs/installation)
-
-### Steps
+## Deploy Your Own Program
 
 1. **Configure Solana CLI for devnet**
 
@@ -132,6 +84,7 @@ The included vault program is already deployed to devnet. To deploy your own:
    ```
 
 4. **Regenerate the client and restart**
+
    ```bash
    npm run setup   # Rebuilds program and regenerates client
    npm run dev
@@ -148,15 +101,33 @@ npm run anchor-test    # Run tests
 
 The tests are in `anchor/programs/vault/src/tests.rs` and automatically use the program ID from `declare_id!`.
 
-## Regenerating the Client
+## Project Structure
 
-If you modify the program, regenerate the TypeScript client:
-
-```bash
-npm run setup   # Or: npm run anchor-build && npm run codama:js
 ```
-
-This uses [Codama](https://github.com/codama-idl/codama) to generate a type-safe client from the Anchor IDL.
+├── app/
+│   ├── components/
+│   │   ├── circle-view.tsx         # Full create/join/contribute/release UI
+│   │   ├── create-circle-modal.tsx # Circle creation form
+│   │   ├── dashboard-view.tsx      # Ledger overview + member list
+│   │   ├── onboarding-modal.tsx    # Email (Privy) + wallet connect flow
+│   │   ├── providers.tsx           # Wallet + theme providers
+│   │   └── wallet-button.tsx       # Wallet connect/disconnect dropdown
+│   ├── generated/vault/           # Codama-generated program client
+│   ├── lib/
+│   │   ├── hooks/
+│   │   │   ├── use-balance.ts      # SWR-based balance fetching (direct RPC + timeout)
+│   │   │   ├── use-circles.ts      # SWR fetcher for all circle accounts
+│   │   │   └── use-send-transaction.ts  # Transaction send + confirmation polling
+│   │   ├── kolo/                   # Program helpers (PDAs, constants, decoders)
+│   │   └── wallet/                 # Wallet-standard connection layer
+│   └── page.tsx                    # Landing page
+├── anchor/
+│   └── programs/vault/             # Anchor program (Rust)
+│       ├── src/
+│       │   ├── lib.rs              # Instructions: create/join/contribute/release/complete
+│       │   └── tests.rs            # LiteSVM tests (10 passing)
+└── scripts/                        # Devnet helper scripts
+```
 
 ## Learn More
 

@@ -15,21 +15,21 @@ import {
 } from "@solana/kit";
 
 export type VaultSeeds = {
-  signer: Address;
+  circle: Address;
 };
 
 export async function findVaultPda(
   seeds: VaultSeeds,
-  config: { programAddress?: Address | undefined } = {}
+  config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = "F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB" as Address<"F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB">,
+    programAddress = "BVNGa6bQ7xPoiXd3Gz1JANVBVugbXD1Q5WQaAYAZ2y5c" as Address<"BVNGa6bQ7xPoiXd3Gz1JANVBVugbXD1Q5WQaAYAZ2y5c">,
   } = config;
   return await getProgramDerivedAddress({
     programAddress,
     seeds: [
       getBytesEncoder().encode(new Uint8Array([118, 97, 117, 108, 116])),
-      getAddressEncoder().encode(seeds.signer),
+      getAddressEncoder().encode(seeds.circle),
     ],
   });
 }

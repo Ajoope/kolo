@@ -10,7 +10,9 @@ import {
   useRef,
   type PropsWithChildren,
 } from "react";
-import type { TransactionSigner } from "@solana/kit";
+import { type TransactionSigner, address, getAddressEncoder } from "@solana/kit";
+import { usePrivy } from "@privy-io/react-auth";
+import { useWallets as usePrivySolanaWallets, useSignTransaction as usePrivySignTransaction } from "@privy-io/react-auth/solana";
 import type { WalletConnector, WalletSession } from "./types";
 import { discoverWallets, watchWallets } from "./standard";
 import { createWalletSigner } from "./signer";
@@ -42,7 +44,12 @@ const STORAGE_KEY = "solana:last-connector";
 
 export function WalletProvider({ children }: PropsWithChildren) {
   const { cluster } = useCluster();
-  const chain = `solana:${cluster}`;
+  const chain = `solana:${cluster}` as "solana:mainnet" | "solana:devnet" | "solana:testnet";
+
+  // Privy hooks
+  const { authenticated, logout } = usePrivy();
+  const { wallets: privyWallets } = usePrivySolanaWallets();
+  const { signTransaction: privySignTransaction } = usePrivySignTransaction();
 
   const [connectors, setConnectors] = useState<WalletConnector[]>(() =>
     typeof window === "undefined" ? [] : discoverWallets()
@@ -73,6 +80,49 @@ export function WalletProvider({ children }: PropsWithChildren) {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
+
+  // Sync Privy embedded wallet when authenticated
+  useEffect(() => {
+    if (authenticated && privyWallets && privyWallets.length > 0) {
+      const activePrivyWallet = privyWallets[0];
+      const walletAddr = address(activePrivyWallet.address);
+
+      // Only update if session isn't already set to this address
+      if (!session || (session.connector.id === "privy-embedded" && session.account.address !== walletAddr)) {
+        const encoder = getAddressEncoder();
+        const pubkeyBytes = encoder.encode(walletAddr);
+
+        const privySession: WalletSession = {
+          account: {
+            address: walletAddr,
+            publicKey: new Uint8Array(pubkeyBytes),
+            label: `Privy Embedded (${walletAddr.slice(0, 4)}...${walletAddr.slice(-4)})`,
+          },
+          connector: {
+            id: "privy-embedded",
+            name: "Privy Embedded Wallet",
+          },
+          disconnect: async () => {
+            await logout();
+          },
+          signTransaction: async (transaction: Uint8Array) => {
+            const result = await privySignTransaction({
+              transaction,
+              wallet: activePrivyWallet,
+              chain,
+            });
+            return new Uint8Array(result.signedTransaction);
+          },
+        };
+
+        setSession(privySession);
+        setStatus(WALLET_STATUS.CONNECTED);
+      }
+    } else if (!authenticated && session?.connector.id === "privy-embedded") {
+      setSession(undefined);
+      setStatus(WALLET_STATUS.DISCONNECTED);
+    }
+  }, [authenticated, privyWallets, logout, session, privySignTransaction, chain]);
 
   useEffect(() => {
     const unsubscribe = watchWallets(handleWalletsChanged);

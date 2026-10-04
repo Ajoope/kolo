@@ -14,20 +14,112 @@ import {
 } from "@solana/kit";
 import { VAULT_PROGRAM_ADDRESS } from "../programs";
 
-/** VaultAlreadyExists: Vault already exists */
-export const VAULT_ERROR__VAULT_ALREADY_EXISTS = 0x1770; // 6000
-/** InvalidAmount: Invalid amount */
-export const VAULT_ERROR__INVALID_AMOUNT = 0x1771; // 6001
+/** InvalidMemberCount: Invalid member count. Must be between 2 and 16. */
+export const VAULT_ERROR__INVALID_MEMBER_COUNT = 0x1770; // 6000
+/** InvalidContributionAmount: Invalid contribution amount. */
+export const VAULT_ERROR__INVALID_CONTRIBUTION_AMOUNT = 0x1771; // 6001
+/** InvalidFrequency: Invalid frequency. */
+export const VAULT_ERROR__INVALID_FREQUENCY = 0x1772; // 6002
+/** InvalidPayoutOrder: Invalid payout order. */
+export const VAULT_ERROR__INVALID_PAYOUT_ORDER = 0x1773; // 6003
+/** CircleNotForming: Circle is not forming. */
+export const VAULT_ERROR__CIRCLE_NOT_FORMING = 0x1774; // 6004
+/** CircleFull: Circle is full. */
+export const VAULT_ERROR__CIRCLE_FULL = 0x1775; // 6005
+/** CircleNotActive: Circle is not active. */
+export const VAULT_ERROR__CIRCLE_NOT_ACTIVE = 0x1776; // 6006
+/** CircleNotCompleted: Circle is not completed. */
+export const VAULT_ERROR__CIRCLE_NOT_COMPLETED = 0x1777; // 6007
+/** CircleNotCancelled: Circle is not cancelled. */
+export const VAULT_ERROR__CIRCLE_NOT_CANCELLED = 0x1778; // 6008
+/** MemberDefaulted: Member has defaulted. */
+export const VAULT_ERROR__MEMBER_DEFAULTED = 0x1779; // 6009
+/** AlreadyContributedThisRound: Already contributed for this round. */
+export const VAULT_ERROR__ALREADY_CONTRIBUTED_THIS_ROUND = 0x177a; // 6010
+/** RoundDeadlineNotPassed: Round deadline has not passed yet. */
+export const VAULT_ERROR__ROUND_DEADLINE_NOT_PASSED = 0x177b; // 6011
+/** GracePeriodAlreadyStarted: Grace period already started. */
+export const VAULT_ERROR__GRACE_PERIOD_ALREADY_STARTED = 0x177c; // 6012
+/** GracePeriodExpired: Grace period has expired. Member must be processed for default. */
+export const VAULT_ERROR__GRACE_PERIOD_EXPIRED = 0x177d; // 6013
+/** GracePeriodNotExpired: Grace period has not expired yet. */
+export const VAULT_ERROR__GRACE_PERIOD_NOT_EXPIRED = 0x177e; // 6014
+/** RecipientDefaulted: Recipient has defaulted. */
+export const VAULT_ERROR__RECIPIENT_DEFAULTED = 0x177f; // 6015
+/** RecipientAlreadyReceivedPayout: Recipient already received payout. */
+export const VAULT_ERROR__RECIPIENT_ALREADY_RECEIVED_PAYOUT = 0x1780; // 6016
+/** InvalidPayoutRecipient: Recipient is not the expected payout recipient. */
+export const VAULT_ERROR__INVALID_PAYOUT_RECIPIENT = 0x1781; // 6017
+/** NoFundsToPayout: No funds available to payout. */
+export const VAULT_ERROR__NO_FUNDS_TO_PAYOUT = 0x1782; // 6018
+/** RoundDeadlineNotReached: Round deadline has not been reached yet. */
+export const VAULT_ERROR__ROUND_DEADLINE_NOT_REACHED = 0x1783; // 6019
+/** RoundPotIncomplete: Not all members have contributed for this round yet. */
+export const VAULT_ERROR__ROUND_POT_INCOMPLETE = 0x1784; // 6020
+/** StakeAlreadyRefunded: Stake has already been refunded. */
+export const VAULT_ERROR__STAKE_ALREADY_REFUNDED = 0x1785; // 6021
+/** NoStakeToRefund: No stake available to refund. */
+export const VAULT_ERROR__NO_STAKE_TO_REFUND = 0x1786; // 6022
+/** Unauthorized: Unauthorized action. */
+export const VAULT_ERROR__UNAUTHORIZED = 0x1787; // 6023
+/** MathOverflow: Math overflow. */
+export const VAULT_ERROR__MATH_OVERFLOW = 0x1788; // 6024
 
 export type VaultError =
-  | typeof VAULT_ERROR__INVALID_AMOUNT
-  | typeof VAULT_ERROR__VAULT_ALREADY_EXISTS;
+  | typeof VAULT_ERROR__ALREADY_CONTRIBUTED_THIS_ROUND
+  | typeof VAULT_ERROR__CIRCLE_FULL
+  | typeof VAULT_ERROR__CIRCLE_NOT_ACTIVE
+  | typeof VAULT_ERROR__CIRCLE_NOT_CANCELLED
+  | typeof VAULT_ERROR__CIRCLE_NOT_COMPLETED
+  | typeof VAULT_ERROR__CIRCLE_NOT_FORMING
+  | typeof VAULT_ERROR__GRACE_PERIOD_ALREADY_STARTED
+  | typeof VAULT_ERROR__GRACE_PERIOD_EXPIRED
+  | typeof VAULT_ERROR__GRACE_PERIOD_NOT_EXPIRED
+  | typeof VAULT_ERROR__INVALID_CONTRIBUTION_AMOUNT
+  | typeof VAULT_ERROR__INVALID_FREQUENCY
+  | typeof VAULT_ERROR__INVALID_MEMBER_COUNT
+  | typeof VAULT_ERROR__INVALID_PAYOUT_ORDER
+  | typeof VAULT_ERROR__INVALID_PAYOUT_RECIPIENT
+  | typeof VAULT_ERROR__MATH_OVERFLOW
+  | typeof VAULT_ERROR__MEMBER_DEFAULTED
+  | typeof VAULT_ERROR__NO_FUNDS_TO_PAYOUT
+  | typeof VAULT_ERROR__NO_STAKE_TO_REFUND
+  | typeof VAULT_ERROR__RECIPIENT_ALREADY_RECEIVED_PAYOUT
+  | typeof VAULT_ERROR__RECIPIENT_DEFAULTED
+  | typeof VAULT_ERROR__ROUND_DEADLINE_NOT_PASSED
+  | typeof VAULT_ERROR__ROUND_DEADLINE_NOT_REACHED
+  | typeof VAULT_ERROR__ROUND_POT_INCOMPLETE
+  | typeof VAULT_ERROR__STAKE_ALREADY_REFUNDED
+  | typeof VAULT_ERROR__UNAUTHORIZED;
 
 let vaultErrorMessages: Record<VaultError, string> | undefined;
 if (process.env.NODE_ENV !== "production") {
   vaultErrorMessages = {
-    [VAULT_ERROR__INVALID_AMOUNT]: `Invalid amount`,
-    [VAULT_ERROR__VAULT_ALREADY_EXISTS]: `Vault already exists`,
+    [VAULT_ERROR__ALREADY_CONTRIBUTED_THIS_ROUND]: `Already contributed for this round.`,
+    [VAULT_ERROR__CIRCLE_FULL]: `Circle is full.`,
+    [VAULT_ERROR__CIRCLE_NOT_ACTIVE]: `Circle is not active.`,
+    [VAULT_ERROR__CIRCLE_NOT_CANCELLED]: `Circle is not cancelled.`,
+    [VAULT_ERROR__CIRCLE_NOT_COMPLETED]: `Circle is not completed.`,
+    [VAULT_ERROR__CIRCLE_NOT_FORMING]: `Circle is not forming.`,
+    [VAULT_ERROR__GRACE_PERIOD_ALREADY_STARTED]: `Grace period already started.`,
+    [VAULT_ERROR__GRACE_PERIOD_EXPIRED]: `Grace period has expired. Member must be processed for default.`,
+    [VAULT_ERROR__GRACE_PERIOD_NOT_EXPIRED]: `Grace period has not expired yet.`,
+    [VAULT_ERROR__INVALID_CONTRIBUTION_AMOUNT]: `Invalid contribution amount.`,
+    [VAULT_ERROR__INVALID_FREQUENCY]: `Invalid frequency.`,
+    [VAULT_ERROR__INVALID_MEMBER_COUNT]: `Invalid member count. Must be between 2 and 16.`,
+    [VAULT_ERROR__INVALID_PAYOUT_ORDER]: `Invalid payout order.`,
+    [VAULT_ERROR__INVALID_PAYOUT_RECIPIENT]: `Recipient is not the expected payout recipient.`,
+    [VAULT_ERROR__MATH_OVERFLOW]: `Math overflow.`,
+    [VAULT_ERROR__MEMBER_DEFAULTED]: `Member has defaulted.`,
+    [VAULT_ERROR__NO_FUNDS_TO_PAYOUT]: `No funds available to payout.`,
+    [VAULT_ERROR__NO_STAKE_TO_REFUND]: `No stake available to refund.`,
+    [VAULT_ERROR__RECIPIENT_ALREADY_RECEIVED_PAYOUT]: `Recipient already received payout.`,
+    [VAULT_ERROR__RECIPIENT_DEFAULTED]: `Recipient has defaulted.`,
+    [VAULT_ERROR__ROUND_DEADLINE_NOT_PASSED]: `Round deadline has not passed yet.`,
+    [VAULT_ERROR__ROUND_DEADLINE_NOT_REACHED]: `Round deadline has not been reached yet.`,
+    [VAULT_ERROR__ROUND_POT_INCOMPLETE]: `Not all members have contributed for this round yet.`,
+    [VAULT_ERROR__STAKE_ALREADY_REFUNDED]: `Stake has already been refunded.`,
+    [VAULT_ERROR__UNAUTHORIZED]: `Unauthorized action.`,
   };
 }
 
@@ -44,13 +136,13 @@ export function isVaultError<TProgramErrorCode extends VaultError>(
   transactionMessage: {
     instructions: Record<number, { programAddress: Address }>;
   },
-  code?: TProgramErrorCode
+  code?: TProgramErrorCode,
 ): error is SolanaError<typeof SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM> &
   Readonly<{ context: Readonly<{ code: TProgramErrorCode }> }> {
   return isProgramError<TProgramErrorCode>(
     error,
     transactionMessage,
     VAULT_PROGRAM_ADDRESS,
-    code
+    code,
   );
 }

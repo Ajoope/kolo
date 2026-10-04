@@ -17,83 +17,287 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  parseDepositInstruction,
-  parseWithdrawInstruction,
-  type ParsedDepositInstruction,
-  type ParsedWithdrawInstruction,
+  parseCancelCircleInstruction,
+  parseCompleteCircleInstruction,
+  parseContributeInstruction,
+  parseCreateCircleInstruction,
+  parseHandleLatePaymentInstruction,
+  parseJoinCircleInstruction,
+  parseProcessDefaultInstruction,
+  parseRefundCancelledStakeInstruction,
+  parseReleasePayoutInstruction,
+  type ParsedCancelCircleInstruction,
+  type ParsedCompleteCircleInstruction,
+  type ParsedContributeInstruction,
+  type ParsedCreateCircleInstruction,
+  type ParsedHandleLatePaymentInstruction,
+  type ParsedJoinCircleInstruction,
+  type ParsedProcessDefaultInstruction,
+  type ParsedRefundCancelledStakeInstruction,
+  type ParsedReleasePayoutInstruction,
 } from "../instructions";
 
 export const VAULT_PROGRAM_ADDRESS =
-  "F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB" as Address<"F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB">;
+  "BVNGa6bQ7xPoiXd3Gz1JANVBVugbXD1Q5WQaAYAZ2y5c" as Address<"BVNGa6bQ7xPoiXd3Gz1JANVBVugbXD1Q5WQaAYAZ2y5c">;
+
+export enum VaultAccount {
+  Circle,
+  Member,
+}
+
+export function identifyVaultAccount(
+  account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
+): VaultAccount {
+  const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([27, 59, 8, 117, 62, 199, 222, 252]),
+      ),
+      0,
+    )
+  ) {
+    return VaultAccount.Circle;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([54, 19, 162, 21, 29, 166, 17, 198]),
+      ),
+      0,
+    )
+  ) {
+    return VaultAccount.Member;
+  }
+  throw new Error(
+    "The provided account could not be identified as a vault account.",
+  );
+}
 
 export enum VaultInstruction {
-  Deposit,
-  Withdraw,
+  CancelCircle,
+  CompleteCircle,
+  Contribute,
+  CreateCircle,
+  HandleLatePayment,
+  JoinCircle,
+  ProcessDefault,
+  RefundCancelledStake,
+  ReleasePayout,
 }
 
 export function identifyVaultInstruction(
-  instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array
+  instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): VaultInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
   if (
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([242, 35, 198, 137, 82, 225, 242, 182])
+        new Uint8Array([235, 90, 15, 94, 27, 245, 101, 23]),
       ),
-      0
+      0,
     )
   ) {
-    return VaultInstruction.Deposit;
+    return VaultInstruction.CancelCircle;
   }
   if (
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([183, 18, 70, 156, 148, 109, 161, 34])
+        new Uint8Array([82, 136, 81, 159, 34, 189, 223, 166]),
       ),
-      0
+      0,
     )
   ) {
-    return VaultInstruction.Withdraw;
+    return VaultInstruction.CompleteCircle;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([82, 33, 68, 131, 32, 0, 205, 95]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.Contribute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([186, 99, 49, 131, 31, 51, 13, 198]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.CreateCircle;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([14, 115, 131, 34, 126, 156, 228, 109]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.HandleLatePayment;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([231, 168, 235, 18, 99, 12, 22, 7]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.JoinCircle;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([150, 255, 232, 158, 44, 241, 174, 35]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.ProcessDefault;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([41, 249, 214, 36, 221, 78, 150, 105]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.RefundCancelledStake;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([181, 87, 198, 92, 64, 3, 24, 155]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.ReleasePayout;
   }
   throw new Error(
-    "The provided instruction could not be identified as a vault instruction."
+    "The provided instruction could not be identified as a vault instruction.",
   );
 }
 
 export type ParsedVaultInstruction<
-  TProgram extends string = "F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB",
+  TProgram extends string = "BVNGa6bQ7xPoiXd3Gz1JANVBVugbXD1Q5WQaAYAZ2y5c",
 > =
   | ({
-      instructionType: VaultInstruction.Deposit;
-    } & ParsedDepositInstruction<TProgram>)
+      instructionType: VaultInstruction.CancelCircle;
+    } & ParsedCancelCircleInstruction<TProgram>)
   | ({
-      instructionType: VaultInstruction.Withdraw;
-    } & ParsedWithdrawInstruction<TProgram>);
+      instructionType: VaultInstruction.CompleteCircle;
+    } & ParsedCompleteCircleInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.Contribute;
+    } & ParsedContributeInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.CreateCircle;
+    } & ParsedCreateCircleInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.HandleLatePayment;
+    } & ParsedHandleLatePaymentInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.JoinCircle;
+    } & ParsedJoinCircleInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.ProcessDefault;
+    } & ParsedProcessDefaultInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.RefundCancelledStake;
+    } & ParsedRefundCancelledStakeInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.ReleasePayout;
+    } & ParsedReleasePayoutInstruction<TProgram>);
 
 export function parseVaultInstruction<TProgram extends string>(
-  instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>
+  instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedVaultInstruction<TProgram> {
   const instructionType = identifyVaultInstruction(instruction);
   switch (instructionType) {
-    case VaultInstruction.Deposit: {
+    case VaultInstruction.CancelCircle: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: VaultInstruction.Deposit,
-        ...parseDepositInstruction(instruction),
+        instructionType: VaultInstruction.CancelCircle,
+        ...parseCancelCircleInstruction(instruction),
       };
     }
-    case VaultInstruction.Withdraw: {
+    case VaultInstruction.CompleteCircle: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: VaultInstruction.Withdraw,
-        ...parseWithdrawInstruction(instruction),
+        instructionType: VaultInstruction.CompleteCircle,
+        ...parseCompleteCircleInstruction(instruction),
+      };
+    }
+    case VaultInstruction.Contribute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.Contribute,
+        ...parseContributeInstruction(instruction),
+      };
+    }
+    case VaultInstruction.CreateCircle: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.CreateCircle,
+        ...parseCreateCircleInstruction(instruction),
+      };
+    }
+    case VaultInstruction.HandleLatePayment: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.HandleLatePayment,
+        ...parseHandleLatePaymentInstruction(instruction),
+      };
+    }
+    case VaultInstruction.JoinCircle: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.JoinCircle,
+        ...parseJoinCircleInstruction(instruction),
+      };
+    }
+    case VaultInstruction.ProcessDefault: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.ProcessDefault,
+        ...parseProcessDefaultInstruction(instruction),
+      };
+    }
+    case VaultInstruction.RefundCancelledStake: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.RefundCancelledStake,
+        ...parseRefundCancelledStakeInstruction(instruction),
+      };
+    }
+    case VaultInstruction.ReleasePayout: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.ReleasePayout,
+        ...parseReleasePayoutInstruction(instruction),
       };
     }
     default:
       throw new Error(
-        `Unrecognized instruction type: ${instructionType as string}`
+        `Unrecognized instruction type: ${instructionType as string}`,
       );
   }
 }

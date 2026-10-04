@@ -32,9 +32,55 @@ export function useSendTransaction() {
 
       setIsSending(true);
       try {
+        // 1. Send transaction through Kit's transaction plan executor (which invokes sendAndConfirmTransaction)
         const result = await txClient.sendTransaction([...instructions]);
+        const sig = result.context.signature;
+
+        // 2. Explicit on-chain confirmation verification:
+        // Poll getSignatureStatuses to guarantee the transaction is confirmed/finalized and did not revert
+        let isConfirmed = false;
+        let attempts = 0;
+        const maxAttempts = 30; // 30s timeout
+
+        while (!isConfirmed && attempts < maxAttempts) {
+          try {
+            const statusResponse = await txClient.rpc
+              .getSignatureStatuses([sig])
+              .send();
+            const status = statusResponse.value?.[0];
+
+            if (status) {
+              if (status.err) {
+                throw new Error(
+                  `Transaction failed on-chain: ${JSON.stringify(status.err)}`
+                );
+              }
+              if (
+                status.confirmationStatus === "confirmed" ||
+                status.confirmationStatus === "finalized"
+              ) {
+                isConfirmed = true;
+                break;
+              }
+            }
+          } catch (rpcErr: unknown) {
+            if (
+              rpcErr instanceof Error &&
+              rpcErr.message.includes("Transaction failed on-chain")
+            ) {
+              throw rpcErr;
+            }
+          }
+
+          attempts++;
+          if (!isConfirmed) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+        }
+
+        // Invalidate balances in SWR cache
         mutate((key: unknown) => Array.isArray(key) && key[0] === "balance");
-        return result.context.signature;
+        return sig;
       } finally {
         setIsSending(false);
       }

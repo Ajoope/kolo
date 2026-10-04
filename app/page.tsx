@@ -8,21 +8,29 @@ import { useBalance } from "./lib/hooks/use-balance";
 import { lamportsToSolString } from "./lib/lamports";
 import { useSolanaClient } from "./lib/solana-client-context";
 import { ellipsify } from "./lib/explorer";
-import { VaultCard } from "./components/vault-card";
-import { GridBackground } from "./components/grid-background";
-import { ThemeToggle } from "./components/theme-toggle";
-import { ClusterSelect } from "./components/cluster-select";
+import { DashboardView } from "./components/dashboard-view";
+import { CircleView } from "./components/circle-view";
+import { CreateCircleModal } from "./components/create-circle-modal";
 import { WalletButton } from "./components/wallet-button";
+import { ClusterSelect } from "./components/cluster-select";
 import { useCluster } from "./components/cluster-context";
+import { useCircles } from "./lib/hooks/use-circles";
+import type { UnifiedCircleView } from "./lib/kolo/fetcher";
 
 export default function Home() {
-  const { wallet, status } = useWallet();
-  const { cluster, getExplorerUrl } = useCluster();
+  const { wallet } = useWallet();
+  const { getExplorerUrl } = useCluster();
   const client = useSolanaClient();
+  const { refreshCircles } = useCircles();
 
   const address = wallet?.account.address;
   const balance = useBalance(address);
   const [copied, setCopied] = useState(false);
+
+  // View state
+  const [currentView, setCurrentView] = useState<"dashboard" | "circle_detail">("dashboard");
+  const [activeCircleView, setActiveCircleView] = useState<UnifiedCircleView | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleCopy = async () => {
     if (!address) return;
@@ -34,238 +42,154 @@ export default function Home() {
   const handleAirdrop = async () => {
     if (!address) return;
     try {
-      toast.info("Requesting airdrop...");
+      toast.info("Requesting Devnet SOL airdrop...");
       const sig = await client.airdrop(address, sol(1_000_000_000n));
-      toast.success("Airdrop received!", {
+      toast.success("Devnet SOL received!", {
         description: sig ? (
           <a
             href={getExplorerUrl(`/tx/${sig}`)}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline"
+            className="underline text-[var(--kolo-terracotta)]"
           >
-            View transaction
+            View transaction on Explorer
           </a>
         ) : undefined,
       });
     } catch (err) {
       console.error("Airdrop failed:", err);
-      const msg = err instanceof Error ? err.message : String(err);
-      const isRateLimited =
-        msg.includes("429") || msg.includes("Internal JSON-RPC error");
-      toast.error(
-        isRateLimited
-          ? "Devnet faucet rate-limited. Use the web faucet instead."
-          : "Airdrop failed. Try again later.",
-        isRateLimited
-          ? {
-              description: (
-                <a
-                  href="https://faucet.solana.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  Open faucet.solana.com
-                </a>
-              ),
-            }
-          : undefined
-      );
+      toast.error("Devnet faucet rate-limited. Please use https://faucet.solana.com.");
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
-      <GridBackground />
+    <div className="min-h-screen bg-[var(--kolo-bg)] text-[var(--kolo-ink)] flex flex-col justify-between">
+      <div>
+        {/* Navigation Bar */}
+        <header className="border-b border-[var(--kolo-border)] bg-[var(--kolo-surface)]">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-4">
+            {/* Brand Logo & Name */}
+            <div
+              onClick={() => setCurrentView("dashboard")}
+              className="flex items-center gap-3 cursor-pointer select-none"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-[var(--kolo-clay-soft)] border border-[var(--kolo-terracotta)]/30 flex items-center justify-center text-[var(--kolo-terracotta)] font-serif font-bold text-xl shadow-xs">
+                K
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-serif font-bold text-lg tracking-tight text-[var(--kolo-ink)]">
+                    Kolo
+                  </span>
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--kolo-surface-subtle)] text-[var(--kolo-ink-muted)] border border-[var(--kolo-border)]">
+                    Devnet
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--kolo-ink-muted)] -mt-0.5">
+                  Communal Ajo Savings
+                </p>
+              </div>
+            </div>
 
-      <div className="relative z-10">
-        {/* Header */}
-        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-sm font-semibold tracking-tight">
-            Solana Starter Kit
-          </span>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <ClusterSelect />
-            <WalletButton />
+            {/* Navigation & Controls */}
+            <div className="flex items-center gap-3">
+              {currentView === "circle_detail" && (
+                <button
+                  onClick={() => setCurrentView("dashboard")}
+                  className="px-3 py-1.5 text-xs font-medium text-[var(--kolo-ink-muted)] hover:text-[var(--kolo-ink)] hover:bg-[var(--kolo-surface-subtle)] rounded-lg transition-colors"
+                >
+                  &larr; Back to dashboard
+                </button>
+              )}
+
+              <ClusterSelect />
+              <WalletButton />
+            </div>
           </div>
         </header>
 
-        <main className="mx-auto max-w-6xl px-6">
-          {/* Hero */}
-          <section className="pt-6 pb-20 md:pt-8 md:pb-32">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h1 className="font-black tracking-tight text-foreground">
-                  <span className="block text-6xl md:text-7xl">Anchor</span>
-                  <span className="block text-7xl md:text-8xl">Vault</span>
-                </h1>
+        {/* Connected Wallet Micro-Bar (if connected) */}
+        {address && (
+          <div className="bg-[var(--kolo-surface-subtle)] border-b border-[var(--kolo-border)] px-4 sm:px-6 py-2">
+            <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[var(--kolo-sage)]" />
+                <span className="text-[var(--kolo-ink-muted)]">Connected:</span>
+                <span className="font-medium text-[var(--kolo-ink)]">
+                  {ellipsify(address)}
+                </span>
+                <button
+                  onClick={handleCopy}
+                  className="text-[var(--kolo-ink-muted)] hover:text-[var(--kolo-ink)] transition-colors"
+                >
+                  {copied ? "Copied" : "Copy"}
+                </button>
               </div>
 
-              <div className="flex max-w-2xl flex-col gap-3">
-                <p className="text-base leading-relaxed text-foreground/50">
-                  This program creates a personal vault for each user using a
-                  Program Derived Address (PDA). Connect your wallet, deposit
-                  SOL into your vault, and withdraw it anytime. Only you can
-                  access your funds.
-                </p>
-                <p className="text-sm leading-relaxed text-foreground/40">
-                  The vault is an{" "}
-                  <a
-                    href="https://www.anchor-lang.com/docs/introduction"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2"
-                  >
-                    Anchor
-                  </a>{" "}
-                  program you can deploy to localnet or devnet and modify
-                  yourself. Check the README for setup instructions.
-                </p>
-                <div className="flex flex-wrap gap-4">
-                  <a
-                    href="https://solana.com/docs"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-                  >
-                    Solana docs
-                    <span aria-hidden="true">&rarr;</span>
-                  </a>
-                  <a
-                    href="https://www.anchor-lang.com/docs/introduction"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-                  >
-                    Anchor docs
-                    <span aria-hidden="true">&rarr;</span>
-                  </a>
-                  <a
-                    href="https://faucet.solana.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-                  >
-                    Faucet
-                    <span aria-hidden="true">&rarr;</span>
-                  </a>
-                </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[var(--kolo-ink-muted)]">
+                  Balance:{" "}
+                  <strong className="text-[var(--kolo-ink)]">
+                    {balance.lamports !== null
+                      ? `${lamportsToSolString(balance.lamports)} SOL`
+                      : balance.isLoading
+                        ? "Loading..."
+                        : "Unavailable"}
+                  </strong>
+                </span>
+                <button
+                  onClick={handleAirdrop}
+                  className="text-[var(--kolo-terracotta)] hover:underline font-medium"
+                >
+                  Request Devnet SOL
+                </button>
               </div>
             </div>
-          </section>
-
-          {/* Template content */}
-          <div className="space-y-10 pb-20">
-            {/* Wallet Balance */}
-            {status === "connected" && address && (
-              <section className="relative w-full overflow-hidden rounded-2xl border border-border-low bg-card px-5 py-5">
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-100 dark:opacity-0"
-                  aria-hidden="true"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)
-                    `,
-                    backgroundSize: "24px 24px",
-                    mask: "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                    WebkitMask:
-                      "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-0 dark:opacity-100"
-                  aria-hidden="true"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)
-                    `,
-                    backgroundSize: "24px 24px",
-                    mask: "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                    WebkitMask:
-                      "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                  }}
-                />
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cream">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-foreground/70"
-                      >
-                        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-                        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-                        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-                      </svg>
-                    </div>
-                    <span className="text-sm font-medium">Wallet Balance</span>
-                    <button
-                      onClick={handleCopy}
-                      className="flex cursor-pointer items-center gap-1.5 font-mono text-xs text-muted transition hover:text-foreground"
-                    >
-                      {ellipsify(address, 4)}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-3 w-3"
-                      >
-                        {copied ? (
-                          <path d="M20 6 9 17l-5-5" />
-                        ) : (
-                          <>
-                            <rect
-                              width="14"
-                              height="14"
-                              x="8"
-                              y="8"
-                              rx="2"
-                              ry="2"
-                            />
-                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                          </>
-                        )}
-                      </svg>
-                    </button>
-                  </div>
-                  {cluster !== "mainnet" && (
-                    <button
-                      onClick={handleAirdrop}
-                      className="cursor-pointer rounded-lg border border-border-low px-3 py-1.5 text-xs font-medium transition hover:bg-cream"
-                    >
-                      Airdrop
-                    </button>
-                  )}
-                </div>
-                <p className="relative mt-4 font-mono text-4xl font-bold tabular-nums tracking-tight">
-                  {balance.lamports != null
-                    ? lamportsToSolString(balance.lamports)
-                    : "\u2014"}
-                  <span className="ml-1.5 text-lg font-normal text-muted">
-                    SOL
-                  </span>
-                </p>
-              </section>
-            )}
-
-            {/* Vault Program Section */}
-            <VaultCard />
           </div>
+        )}
+
+        {/* Main Content Area */}
+        <main className="pb-16">
+          {currentView === "dashboard" ? (
+            <DashboardView
+              onSelectCircle={(circle) => {
+                setActiveCircleView(circle);
+                setCurrentView("circle_detail");
+              }}
+              onCreateCircleClick={() => {
+                setIsCreateModalOpen(true);
+              }}
+              onJoinInviteClick={() => {
+                setCurrentView("circle_detail");
+              }}
+            />
+          ) : (
+            <CircleView />
+          )}
         </main>
+
+        {/* Create Circle Modal */}
+        <CreateCircleModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onCircleCreated={() => {
+            refreshCircles();
+          }}
+        />
       </div>
+
+      {/* Warm Footer */}
+      <footer className="border-t border-[var(--kolo-border)] bg-[var(--kolo-surface)] py-6 text-center text-xs text-[var(--kolo-ink-muted)]">
+        <div className="max-w-6xl mx-auto px-4 space-y-1">
+          <p>
+            Kolo * Decentralized Rotating Savings & Collateral Protection Protocol
+          </p>
+          <p className="text-[11px] text-[var(--kolo-ink-muted)]/80">
+            Powered by Solana Devnet Anchor Program{" "}
+            <code className="font-mono text-[10px]">BVNGa6bQ...y5c</code>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

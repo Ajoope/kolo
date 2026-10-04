@@ -6,4 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./callerMember";
+export * from "./circle";
+export * from "./member";
 export * from "./vault";
